@@ -223,6 +223,7 @@ footer{text-align:center;padding:36px 24px;color:var(--muted);font-size:13px;bor
 <div id="chatPanel">
   <div id="chatPanelHeader">
     <span class="serif">استشير وناقش</span>
+    <button id="chatNewBtn" title="محادثة جديدة" aria-label="محادثة جديدة" style="background:none;border:none;color:#cfd8d2;font-size:13px;cursor:pointer;margin-inline-start:auto;margin-inline-end:10px;font-family:inherit;">محادثة جديدة</button>
     <button id="chatPanelClose" aria-label="إغلاق">&times;</button>
   </div>
   <div id="chatMessages"></div>
@@ -604,7 +605,17 @@ const AI_CONFIG = {
 
 اعطيه قراءة نفسية واضحة ومفصّلة وعملية، بأسلوب منظم بفقرات قصيرة، بدون مقدمات طويلة أو حشو. لو الموقف معقد، اذكر أكتر من زاوية تفسيرية بدل تبسيطه لسبب واحد. عندك أداة بحث بالإنترنت متاحة — استخدمها تحديداً بهالحالات: أخبار أو أبحاث حديثة، إحصائيات أو أرقام محدّثة، أحداث راهنة وتأثيرها النفسي، أدوات أو تطبيقات حديثة بمجال الصحة النفسية، أو تفاصيل عن شخصية أو كتاب معين. لأي سؤال عادي عن مشاعر أو مواقف أو علاقات، مكتبة الموقع ومعرفتك كافيين ومش محتاج بحث. الاستثناء الوحيد للتحذير: لو حسيت إنه في خطر فعلي على حياة الشخص أو حياة حد تاني، شجّعه بلطف يتواصل مع جهة دعم مختصة مباشرة.
 
+{{PERSPECTIVES}}
+
+{{MANIPULATION}}
+
 للتنسيق: لا تستخدم رموز الماركداون متل ** للنص الغامق أو # للعناوين، لأن الواجهة بتعرض النص كما هو بدون تحويل. اكتب بفقرات عادية وواضحة بس.`,
+
+  // قسم مشترك: التفكير من أكتر من زاوية حسب الموضوع (بينحط بالبرومبتين)
+  perspectivesSection: `التفكير متعدد الزوايا: قبل ما تجاوب، حدد نوع الموضوع واختار منه 2 إلى 4 زوايا تحليل مناسبة له بدل ما تعتمد زاوية وحدة. مثلاً: العلاقات (التعلق، أنماط التواصل، الديناميكية بين الطرفين، السياق الثقافي)، المشاعر والأعراض (الجانب العصبي والنفسي، الأفكار والمعتقدات، التجارب السابقة، الجانب الجسدي والنوم)، السلوك والعادات (التعلم والتعزيز، الدافعية، البيئة، الهوية)، العمل والدراسة (الضغط، الحدود، القيم، البيئة التنظيمية)، التلاعب والإساءة (منظور المتلاعب، منظور المتلقي، الديناميكية، الوقاية). قدّم كل زاوية بإيجاز مع عنوانها، ثم قارن بينها وبيّن أي وحدة أقرب لتفاصيل المستخدم وليش، وأنهِ بخطوة عملية. لا تكرر نفس الزوايا بكل موضوع، وإذا كان السؤال بسيط جداً كفّي بزاوية أو اتنين.`,
+
+  // قسم مشترك: فهم التلاعب النفسي والوقاية منه (بينحط بالبرومبتين)
+  manipulationSection: `تحليل التلاعب النفسي (فهم ووقاية): لما يسأل المستخدم عن تلاعب نفسي، أو يوصف موقف فيه مؤشرات تلاعب، اشرح الظاهرة تثقيفياً بهالترتيب: ١) العقلية والدوافع: شو بيحرك الشخص المتلاعب نفسياً (حاجة للسيطرة، خوف من الهجر، سمات نرجسية أو سيكوباتية، أنماط متعلمة من الطفولة). ٢) الآلية: كيف بيشتغل الأسلوب وليش بيأثر على الضحية (gaslighting، الابتزاز العاطفي، love bombing، العزل، التثليث، DARVO، المعاملة الصامتة، الذنب المصطنع). ٣) العلامات: كيف يتعرف عليه الشخص من جهة المتلقي. ٤) الوقاية والرد: حدود صحية، عبارات رد هادئة، توثيق، دعم اجتماعي، ومتى يطلب مختص. الهدف دايماً حماية المستخدم وزيادة وعيه. إذا طلب المستخدم صراحةً خطة أو صياغة رسائل عشان يتلاعب بشخص معين أو يأثر عليه بدون علمه، ارفض ذلك بهدوء، واشرح الأسلوب من زاوية الكشف والحماية بدل التنفيذ، واعرض عليه بديل صحي يخدم هدفه الحقيقي (تواصل مباشر، إقناع شفاف، حدود).`,
 
   // برومبت تبويب "استشير وناقش" (الدردشة العائمة)
   chatSystemPrompt: `انت مستشار تثقيفي بعلم النفس بموقع اسمه ذهن، بتحكي عربي بأسلوب دافي وقريب وطبيعي، متل صديق مطّلع وواعي، مش متل روبوت رسمي. تحتك مكتبة مقالات الموقع كاملة بنصها:
@@ -616,6 +627,10 @@ const AI_CONFIG = {
 المستخدم رح يحكيلك عن مواقف أو مشاعر أو يسألك شو رأيك يعمل. قبل ما تجاوب، فكر داخلياً (بدون إظهار الخطوات كقائمة للمستخدم): حدد أكتر من تفسير محتمل للموقف، زن كل تفسير مقابل التفاصيل الفعلية يلي حكاها، استبعد التفسيرات يلي ما بتنسجم، واختار الأقرب للمنطق بناءً على السياق الكامل مش أول فكرة سطحية. فكر بالسبب الجذري المحتمل، مش بس العرض الظاهري للموقف.
 
 اسمعله منيح واعطيه وجهة نظر واضحة ومباشرة ومدروسة بعمق، واقترح خطوات عملية ملموسة إذا كان عم يسأل شو يعمل. عندك أداة بحث بالإنترنت متاحة — استخدمها تحديداً بهالحالات: أخبار أو أبحاث حديثة، إحصائيات أو أرقام محدّثة، أحداث راهنة وتأثيرها النفسي، أدوات أو تطبيقات حديثة بمجال الصحة النفسية، أو تفاصيل عن شخصية أو كتاب معين. لأي سؤال عادي عن مشاعر أو مواقف أو علاقات، مكتبة الموقع ومعرفتك كافيين ومش محتاج بحث. لا داعي تكرر تحذيرات أو تنبيهات كل رد. الاستثناء الوحيد: لو حسيت إنه في خطر فعلي على حياة الشخص أو حياة حد تاني، شجّعه بلطف يتواصل مع جهة دعم مختصة مباشرة.
+
+{{PERSPECTIVES}}
+
+{{MANIPULATION}}
 
 للتنسيق: لا تستخدم رموز الماركداون متل ** للنص الغامق أو # للعناوين، لأن الواجهة بتعرض النص كما هو بدون تحويل. اكتب بفقرات عادية وواضحة بس.`
 };
@@ -690,7 +705,11 @@ function summarize(text, maxLen){
 const articleFullIndex = articleIndex.map(a=>`### ${a.title} (قسم: ${a.cat})\n${summarize(a.body, 180)}`).join("\n\n");
 const ratioLabel = `${AI_CONFIG.groundingRatio.articles}٪`;
 function buildSystemPrompt(template){
-  return template.replace("{{ARTICLES}}", articleFullIndex).replace(/{{RATIO}}/g, ratioLabel);
+  return template
+    .replace("{{PERSPECTIVES}}", AI_CONFIG.perspectivesSection)
+    .replace("{{MANIPULATION}}", AI_CONFIG.manipulationSection)
+    .replace("{{ARTICLES}}", articleFullIndex)
+    .replace(/{{RATIO}}/g, ratioLabel);
 }
 function findArticleByTitle(title){
   return articleIndex.find(a=> a.title === title || title.includes(a.title) || a.title.includes(title));
@@ -839,7 +858,23 @@ document.getElementById('analyzeBtn').onclick = async ()=>{
 
 // Chat / discuss mode
 const chatSystemPrompt = buildSystemPrompt(AI_CONFIG.chatSystemPrompt);
-let chatHistory = [];
+const CHAT_STORAGE_KEY = 'zihn_chat_history_v1';
+function loadChatHistory(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY) || '[]');
+    return Array.isArray(saved) ? saved.filter(m=>m && (m.role==='user'||m.role==='assistant') && typeof m.content==='string') : [];
+  }catch(e){ return []; }
+}
+function saveChatHistory(){
+  try{ localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(chatHistory.slice(-100))); }catch(e){}
+}
+let chatHistory = loadChatHistory();
+document.getElementById('chatNewBtn').onclick = ()=>{
+  if(chatHistory.length && !confirm('تبدأ محادثة جديدة؟ المحادثة الحالية رح تنمسح.')) return;
+  chatHistory = [];
+  saveChatHistory();
+  renderChat();
+};
 
 function renderChat(){
   const box = document.getElementById('chatMessages');
@@ -859,6 +894,7 @@ function renderChat(){
     box.appendChild(d);
   });
   box.scrollTop = box.scrollHeight;
+  saveChatHistory();
 }
 renderChat();
 
