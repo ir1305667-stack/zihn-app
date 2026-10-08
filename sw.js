@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zihn-cache-v1';
+const CACHE_NAME = 'zihn-cache-v2';
 const ASSETS_TO_CACHE = [
   './index.html',
   './manifest.json',
@@ -27,9 +27,18 @@ self.addEventListener('fetch', (event) => {
   // لا تخزّن طلبات الذكاء الاصطناعي مؤقتاً، بس اسمح فيها تمر بشكل طبيعي
   if (url.hostname.includes('anthropic.com')) return;
 
+  if (event.request.method !== 'GET') return;
+
+  // الشبكة أولاً، وإذا فشلت (أوفلاين) نعرض النسخة المخزنة، عشان التحديثات توصل للمستخدمين
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).catch(() => cached);
-    })
+    fetch(event.request)
+      .then((response) => {
+        if (response && response.ok && url.origin === self.location.origin) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
