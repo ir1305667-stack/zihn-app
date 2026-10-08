@@ -240,6 +240,7 @@ footer{text-align:center;padding:36px 24px;color:var(--muted);font-size:13px;bor
     <button id="chatNewBtn" title="محادثة جديدة" aria-label="محادثة جديدة" style="background:none;border:none;color:#cfd8d2;font-size:13px;cursor:pointer;margin-inline-start:auto;margin-inline-end:10px;font-family:inherit;">محادثة جديدة</button>
     <button id="chatPanelClose" aria-label="إغلاق">&times;</button>
   </div>
+  <button id="chatModeBtn" type="button" aria-pressed="false" style="background:transparent;border:1px solid #3f6a61;color:#cfd8d2;padding:6px 12px;border-radius:16px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:10px;align-self:flex-start;">وضع: من داخل عقل المتلاعب (مطفأ)</button>
   <div id="chatMessages"></div>
   <div class="chat-input-row">
     <textarea id="chatInput" placeholder="احكيلي عن الموقف، أو اسأل شو رأيك أعمل..." rows="1"></textarea>
@@ -902,6 +903,30 @@ document.getElementById('analyzeBtn').onclick = async ()=>{
 
 // Chat / discuss mode
 const chatSystemPrompt = buildSystemPrompt(AI_CONFIG.chatSystemPrompt);
+// وضع "من داخل عقل المتلاعب" بالدردشة: نفس برومبت التبويب + تعليمات للحوار
+const chatMindSystemPrompt = buildSystemPrompt(AI_CONFIG.mindSystemPrompt) + `
+
+هاد حوار مستمر مش تحليل مرة وحدة: بأول رد التزم بالترتيب السداسي فوق، وبالأسئلة والمتابعات اللي بعدها جاوب مباشرة على سؤال المستخدم بنفس المنظور (كيف بيفكر المتلاعب وكيف تكشفه وتحمي حالك)، بدون ما تعيد كل الأقسام. وخلي أسلوبك دافي وقريب.`;
+const CHAT_MODE_KEY = 'zihn_chat_mind_mode_v1';
+let chatMindMode = false;
+try{ chatMindMode = localStorage.getItem(CHAT_MODE_KEY) === '1'; }catch(e){}
+function updateChatModeBtn(){
+  const b = document.getElementById('chatModeBtn');
+  b.setAttribute('aria-pressed', chatMindMode ? 'true' : 'false');
+  b.textContent = 'وضع: من داخل عقل المتلاعب (' + (chatMindMode ? 'شغّال' : 'مطفأ') + ')';
+  b.style.background = chatMindMode ? 'var(--gold)' : 'transparent';
+  b.style.borderColor = chatMindMode ? 'var(--gold)' : '#3f6a61';
+  b.style.color = chatMindMode ? '#2a2213' : '#cfd8d2';
+  document.getElementById('chatInput').placeholder = chatMindMode
+    ? 'اوصف الموقف أو اسأل عن أسلوب تلاعب...'
+    : 'احكيلي عن الموقف، أو اسأل شو رأيك أعمل...';
+}
+document.getElementById('chatModeBtn').onclick = ()=>{
+  chatMindMode = !chatMindMode;
+  try{ localStorage.setItem(CHAT_MODE_KEY, chatMindMode ? '1' : '0'); }catch(e){}
+  updateChatModeBtn();
+};
+updateChatModeBtn();
 const CHAT_STORAGE_KEY = 'zihn_chat_history_v1';
 function loadChatHistory(){
   try{
@@ -961,7 +986,7 @@ async function sendChat(){
   document.getElementById('chatSendBtn').disabled = true;
 
   try{
-    const data = await callClaudeAPI({system: chatSystemPrompt, messages: chatHistory.map(m=>({role:m.role, content:String(m.content)}))});
+    const data = await callClaudeAPI({system: chatMindMode ? chatMindSystemPrompt : chatSystemPrompt, messages: chatHistory.map(m=>({role:m.role, content:String(m.content)}))});
     const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text||"").join("\n") || "ما قدرت أرد هلق، جرب تبعت تاني.";
     chatHistory.push({role:'assistant', content: text});
   }catch(err){
