@@ -274,6 +274,7 @@ footer{text-align:center;padding:36px 24px;color:var(--muted);font-size:13px;bor
   </div>
 </div>
 
+<script src="manipulation-kb.js"></script>
 <script>
 const DATA = {
   "نظريات كبرى": {
@@ -636,7 +637,11 @@ const AI_CONFIG = {
 
 {{ARTICLES}}
 
-اعتمد بشكل أساسي (حوالي {{RATIO}}) على مفاهيم المقالات فوق، واذكر عنوان المقالة الحرفي لما تستخدم مفهوم منها، ولا تخترع عناوين.
+وهاي قاعدة معرفة مفصّلة عن التلاعب النفسي، اعتمد عليها بشكل أساسي بالدقة والمصطلحات والأمثلة:
+
+{{KB}}
+
+لما تستخدم مفهوم من مقالات الموقع، اذكر عنوان المقالة الحرفي ولا تخترع عناوين. ولو سؤال المستخدم خارج اللي بالقاعدة، كمّل من معرفتك العامة بحذر وقول إنه تقدير.
 
 المستخدم رح يكتب اسم أسلوب تلاعب، أو يوصف موقف صار معه. رتّب ردك هيك:
 ١. تحديد الأسلوب: شو الأسلوب أو الأساليب الأقرب لوصفه (مع ذكر إنه تقدير مش حكم نهائي على الشخص).
@@ -749,7 +754,8 @@ function buildSystemPrompt(template){
   return template
     .replace("{{PERSPECTIVES}}", AI_CONFIG.perspectivesSection)
     .replace("{{MANIPULATION}}", AI_CONFIG.manipulationSection)
-    .replace("{{ARTICLES}}", articleFullIndex)
+    .replace("{{ARTICLES}}", ()=>articleFullIndex)
+    .replace("{{KB}}", ()=> (typeof MANIPULATION_KB === 'string' ? MANIPULATION_KB : ''))
     .replace(/{{RATIO}}/g, ratioLabel);
 }
 function findArticleByTitle(title){
