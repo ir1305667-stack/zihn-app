@@ -1037,6 +1037,27 @@ function petalSVG(grad){
 
 let roseTimer = null, roseCleanup = null, roseStop = null;
 const ROSE_DURATION = 15000; // الورد بينزل متواصل 15 ثانية
+// المقطع الصوتي اللي بيشتغل مع الورد
+const JOJO_SONG = 'jojo-song.mp3';
+const JOJO_SONG_START = 0; // من أي ثانية بالملف يبلّش المقطع
+let jojoAudio = null, jojoFade = null;
+function playJojoSong(){
+  clearInterval(jojoFade);
+  if(!jojoAudio) jojoAudio = new Audio(JOJO_SONG);
+  jojoAudio.volume = 1;
+  try{ jojoAudio.currentTime = JOJO_SONG_START; }catch(e){}
+  jojoAudio.play().catch(()=>{});
+}
+function stopJojoSong(fade){
+  if(!jojoAudio) return;
+  clearInterval(jojoFade);
+  if(!fade){ jojoAudio.pause(); return; }
+  // الصوت بيخفت تدريجياً خلال ثانيتين
+  jojoFade = setInterval(()=>{
+    jojoAudio.volume = Math.max(0, jojoAudio.volume - 0.05);
+    if(jojoAudio.volume === 0){ clearInterval(jojoFade); jojoAudio.pause(); }
+  }, 100);
+}
 // إذا المستخدم كتب "انا جوجو" قبل، الموقع بيفتح زهري
 try{ if(localStorage.getItem('zihnJojo') === '1') document.body.classList.add('jojo'); }catch(e){}
 function startRoses(){
@@ -1057,6 +1078,7 @@ function startRoses(){
   try{ localStorage.setItem('zihnJojo', '1'); }catch(e){}
   clearTimeout(roseStop);
   roseStop = setTimeout(stopRoses, ROSE_DURATION);
+  playJojoSong();
   if(roseTimer) return;
   const spawn = () => {
     const isRose = Math.random() < 0.35;
@@ -1085,7 +1107,7 @@ function startRoses(){
 function stopRoses(){
   clearInterval(roseTimer);
   roseTimer = null;
-  // الورد اللي نازل بكمّل لتحت، والموقع بضل زهري
+  // الورد اللي نازل بكمّل لتحت، والموقع بضل زهري، والمقطع بكمّل لآخره
   roseCleanup = setTimeout(() => {
     const layer = document.getElementById('roseLayer');
     if(layer) layer.remove();
@@ -1097,6 +1119,7 @@ function resetJojo(){
   clearInterval(roseTimer);
   clearTimeout(roseCleanup);
   roseTimer = null;
+  stopJojoSong(false);
   const layer = document.getElementById('roseLayer');
   if(layer) layer.remove();
   document.body.classList.remove('jojo');
