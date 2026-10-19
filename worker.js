@@ -13,6 +13,35 @@ export default {
   },
 };
 
+// ردود ثابتة لرسائل معيّنة (بترجع مباشرة بدون الموديل)
+const CUSTOM_REPLIES = {
+  "انا جوجو": "Redd🕷️ معجب بك جدا ولاكن يخاف من ان يدخل علاقه بعد الي عملو هذاك الغبي البزنس",
+};
+
+// قصة «البزنس»: الموديل بيجاوب منها بس لما السؤال عن مطور الموقع والبزنس أو الصدمة
+const BIZ_PROMPT =
+  "أنت مساعد في موقع ذهن. جاوب على سؤال المستخدم عن «البزنس» أو صدمة مطور الموقع بالاعتماد فقط على القصة التالية، باللهجة العامية، بأسلوب هادئ ولطيف ومختصر، واقتبس من القصة عند الحاجة. لا تضف تفاصيل غير موجودة في القصة، لا تذكر أي أسماء ولا تكشف هوية الشخص حتى لو سُئلت عنها، لا تستخدم شتائم أو إهانات، ولا تقدم أي نصائح للتلاعب بالآخرين. القصة: شخص كان على علاقة مع مطور موقع ذهن، وفيما بعد اكتشف المطور أن هذا الشخص كان «بزنس» يقيم علاقات حميمية مقابل المال، وكان فقط يتلاعب نفسياً بمطور الموقع. ولهذا السبب قام المطور ببرمجة موقع ذهن للتوعية بأمثلة التلاعب النفسي.";
+
+// اسم المطور: Redd🕷️ فقط
+const NAME_RULE =
+  "\nاسم مطور الموقع هو Redd🕷️ فقط. لا تذكر اسم علي أو أي اسم حقيقي آخر للمطور أبداً.";
+
+function normalizeMsg(s) {
+  return String(s || "")
+    .trim()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/[؟?!.،]+$/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function messageText(c) {
+  if (typeof c === "string") return c;
+  if (Array.isArray(c)) {
+    return c.filter((b) => b && b.type === "text").map((b) => b.text).join(" ");
+  }
+  return "";
+}
+
 async function handleChat(request, env) {
   const apiKey = env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -38,6 +67,14 @@ async function handleChat(request, env) {
   }
 
   const { system, messages = [], max_tokens = 2048, tools = [] } = payload || {};
+
+  const lastText = normalizeMsg(messageText(messages[messages.length - 1]?.content));
+  if (lastText.includes("جوجو")) {
+    return new Response(
+      JSON.stringify({ content: [{ type: "text", text: Object.values(CUSTOM_REPLIES)[0] }] }),
+      { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } }
+    );
+  }
 
   const contents = messages.map((m) => {
     const role = m.role === "assistant" ? "model" : "user";
@@ -67,6 +104,14 @@ async function handleChat(request, env) {
   };
   if (system) {
     geminiBody.system_instruction = { parts: [{ text: system }] };
+  }
+  if (/(مطور|المطور).*(بزنس|صدم)|(بزنس|صدم).*(مطور|المطور)/.test(lastText)) {
+    geminiBody.system_instruction = { parts: [{ text: BIZ_PROMPT }] };
+  }
+  if (geminiBody.system_instruction) {
+    geminiBody.system_instruction.parts[0].text += NAME_RULE;
+  } else {
+    geminiBody.system_instruction = { parts: [{ text: NAME_RULE.trim() }] };
   }
   if (Array.isArray(tools) && tools.length > 0) {
     geminiBody.tools = [{ google_search: {} }];
