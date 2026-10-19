@@ -143,6 +143,20 @@ footer{text-align:center;padding:36px 24px;color:var(--muted);font-size:13px;bor
 .about-box p{color:var(--ink);font-size:14.5px;line-height:1.9;margin:0;}
 .footer-credit{margin-top:12px;font-family:'Amiri',serif;font-size:13px;color:var(--gold);letter-spacing:0.5px;}
 
+/* وضع جوجو: الموقع بصير زهري طول ما الورد نازل */
+body, header, .tool, #chatPanel, #chatFab, .msg, .cat-card, .article-card, .about-box, .modal{transition:background-color .8s, color .8s, border-color .8s;}
+body.jojo{--ink:#3b1f2b;--parchment:#FCE4EC;--card:#FFF0F5;--teal:#C2185B;--teal-dark:#880E4F;--gold:#F06292;--gold-light:#F8BBD0;--line:#F4C2D3;--muted:#8a5a6d;}
+body.jojo header{background:rgba(252,228,236,0.94);}
+body.jojo .tool p.lead, body.jojo .tab-btn, body.jojo .chat-mode, body.jojo .loading{color:#fde4ee;}
+body.jojo .tab-btn, body.jojo .chat-mode, body.jojo textarea, body.jojo .chat-input-row textarea{border-color:#c2185b;}
+body.jojo .tab-btn.active, body.jojo .chat-mode.active, body.jojo .msg-user, body.jojo .tool .btn-primary, body.jojo .chat-input-row button{color:#fff;}
+body.jojo .tool .btn-primary:hover{background:#ec407a;}
+body.jojo .msg-ai, body.jojo .result{background:#fff0f5;}
+body.jojo .chat-empty, body.jojo .chat-loading{color:#f8bbd0;}
+body.jojo .msg-ai .art-link{color:#c2185b;}
+#roseLayer{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:9999;perspective:600px;}
+#roseLayer .rose-item{position:absolute;top:-80px;will-change:transform;filter:drop-shadow(0 4px 4px rgba(90,10,30,0.25));}
+
 @media(max-width:640px){
   nav ul{display:none;}
   .hero h1{font-size:32px;}
@@ -979,11 +993,108 @@ function renderChat(){
 }
 renderChat();
 
+// نثر ورد على الشاشة لما المستخدم يكتب "انا جوجو"
+function isJojo(txt){
+  const t = txt.replace(/[أإآ]/g, 'ا').replace(/[ً-ْـ]/g, '').replace(/\s+/g, ' ');
+  return t.includes('انا جوجو');
+}
+// رسومات الورد (SVG): وردة كاملة وبتلات بتدرجات لونية عشان تطلع واقعية
+const ROSE_DEFS = `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <radialGradient id="rgRed" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="46">
+    <stop offset="0" stop-color="#4a0414"/><stop offset=".45" stop-color="#9b0f2e"/><stop offset=".8" stop-color="#d1284c"/><stop offset="1" stop-color="#ee5a78"/></radialGradient>
+  <radialGradient id="rgPink" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="46">
+    <stop offset="0" stop-color="#8e1846"/><stop offset=".45" stop-color="#d14a7c"/><stop offset=".8" stop-color="#f28fb1"/><stop offset="1" stop-color="#fcd0e0"/></radialGradient>
+  <linearGradient id="lgLeaf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f8a3a"/><stop offset="1" stop-color="#1f4d1c"/></linearGradient>
+  <linearGradient id="lgPetalRed" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#6e0820"/><stop offset=".6" stop-color="#c41d44"/><stop offset="1" stop-color="#f06683"/></linearGradient>
+  <linearGradient id="lgPetalPink" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#b2386a"/><stop offset=".6" stop-color="#ee86ab"/><stop offset="1" stop-color="#fde0eb"/></linearGradient>
+  <path id="rosePetal" d="M0 0C-26-6-30-38-12-46C-6-49-2-46 0-42C2-46 6-49 12-46C30-38 26-6 0 0Z"/>
+  <path id="loosePetal" d="M0 22C-14 12-20-6-12-18C-7-24-2-22 0-17C2-22 7-24 12-18C20-6 14 12 0 22Z"/>
+</defs></svg>`;
+
+function roseSVG(grad){
+  let p = '';
+  const ring = (n, scale, offset) => {
+    for(let i = 0; i < n; i++){
+      p += `<use href="#rosePetal" transform="rotate(${offset + i*360/n}) scale(${scale})" fill="url(#${grad})" stroke="rgba(60,0,15,.45)" stroke-width="${1/scale}"/>`;
+    }
+  };
+  ring(5, 1, 0); ring(5, .78, 36); ring(4, .55, 15); ring(3, .36, 50);
+  return `<svg viewBox="-56 -56 112 112" width="100%" height="100%">
+    <path d="M-10 30C-40 40-58 28-60 10C-40 6-22 14-10 30Z" fill="url(#lgLeaf)"/>
+    <path d="M14 28C40 46 58 34 58 16C40 8 24 14 14 28Z" fill="url(#lgLeaf)"/>
+    ${p}
+    <path d="M-3 -2C-6 -8 2 -12 6 -6C9 -1 3 5 -3 3" fill="none" stroke="#3a020d" stroke-width="1.6" stroke-linecap="round"/>
+  </svg>`;
+}
+function petalSVG(grad){
+  return `<svg viewBox="-24 -26 48 50" width="100%" height="100%">
+    <use href="#loosePetal" fill="url(#${grad})"/>
+    <path d="M0 18C-1 6 -1 -6 0 -14" stroke="rgba(80,0,20,.25)" stroke-width="1" fill="none"/>
+    <ellipse cx="-5" cy="-8" rx="4" ry="8" fill="rgba(255,255,255,.22)" transform="rotate(20 -5 -8)"/>
+  </svg>`;
+}
+
+let roseTimer = null, roseCleanup = null;
+// إذا المستخدم كتب "انا جوجو" قبل، الموقع بيفتح زهري
+try{ if(localStorage.getItem('zihnJojo') === '1') document.body.classList.add('jojo'); }catch(e){}
+function startRoses(){
+  clearTimeout(roseCleanup);
+  if(!document.getElementById('roseDefs')){
+    const d = document.createElement('div');
+    d.id = 'roseDefs';
+    d.innerHTML = ROSE_DEFS;
+    document.body.appendChild(d);
+  }
+  let layer = document.getElementById('roseLayer');
+  if(!layer){
+    layer = document.createElement('div');
+    layer.id = 'roseLayer';
+    document.body.appendChild(layer);
+  }
+  document.body.classList.add('jojo');
+  try{ localStorage.setItem('zihnJojo', '1'); }catch(e){}
+  if(roseTimer) return;
+  const spawn = () => {
+    const isRose = Math.random() < 0.35;
+    const grad = Math.random() < 0.5 ? 'Red' : 'Pink';
+    const size = isRose ? 38 + Math.random()*30 : 16 + Math.random()*16;
+    const el = document.createElement('div');
+    el.className = 'rose-item';
+    el.style.cssText = `left:${Math.random()*100}vw;width:${size}px;height:${size}px`;
+    el.innerHTML = isRose ? roseSVG('rg' + grad) : petalSVG('lgPetal' + grad);
+    layer.appendChild(el);
+    // سقوط مع تمايل وتقلّب ثلاثي الأبعاد زي البتلات الحقيقية
+    const sway = 30 + Math.random()*60, dir = Math.random() < 0.5 ? -1 : 1;
+    const spin = (Math.random() - 0.5) * (isRose ? 360 : 900);
+    const flip = isRose ? 40 : 360 + Math.random()*360;
+    const frames = [];
+    for(let i = 0; i <= 6; i++){
+      const k = i / 6;
+      frames.push({transform: `translate(${Math.sin(k*Math.PI*2)*sway*dir}px, ${k*115}vh) rotate(${spin*k}deg) rotateX(${flip*k}deg) rotateY(${flip*0.6*k}deg)`});
+    }
+    const dur = (isRose ? 5000 : 6500) + Math.random()*3000;
+    el.animate(frames, {duration: dur, easing: 'linear'}).onfinish = () => el.remove();
+  };
+  for(let i = 0; i < 12; i++) setTimeout(spawn, i * 60);
+  roseTimer = setInterval(spawn, 140);
+}
+function stopRoses(){
+  clearInterval(roseTimer);
+  roseTimer = null;
+  // الورد اللي نازل بكمّل لتحت، والموقع بضل زهري
+  roseCleanup = setTimeout(() => {
+    const layer = document.getElementById('roseLayer');
+    if(layer) layer.remove();
+  }, 9500);
+}
+
 async function sendChat(){
   const input = document.getElementById('chatInput');
   // تنظيف النص من أحرف تحكم غير مرئية ممكن تسبب فشل الطلب
   const txt = input.value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').trim();
   if(!txt) return;
+  const jojo = isJojo(txt);
+  if(jojo) startRoses();
   chatHistory.push({role:'user', content: txt});
   input.value = '';
   input.style.height = 'auto';
@@ -1006,6 +1117,7 @@ async function sendChat(){
   }finally{
     document.getElementById('chatSendBtn').disabled = false;
     renderChat();
+    if(jojo) stopRoses();
   }
 }
 
