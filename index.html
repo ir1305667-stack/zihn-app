@@ -1034,7 +1034,8 @@ function petalSVG(grad){
   </svg>`;
 }
 
-let roseTimer = null, roseCleanup = null;
+let roseTimer = null, roseCleanup = null, roseStop = null;
+const ROSE_DURATION = 15000; // الورد بينزل متواصل 15 ثانية
 // إذا المستخدم كتب "انا جوجو" قبل، الموقع بيفتح زهري
 try{ if(localStorage.getItem('zihnJojo') === '1') document.body.classList.add('jojo'); }catch(e){}
 function startRoses(){
@@ -1053,6 +1054,8 @@ function startRoses(){
   }
   document.body.classList.add('jojo');
   try{ localStorage.setItem('zihnJojo', '1'); }catch(e){}
+  clearTimeout(roseStop);
+  roseStop = setTimeout(stopRoses, ROSE_DURATION);
   if(roseTimer) return;
   const spawn = () => {
     const isRose = Math.random() < 0.35;
@@ -1093,8 +1096,7 @@ async function sendChat(){
   // تنظيف النص من أحرف تحكم غير مرئية ممكن تسبب فشل الطلب
   const txt = input.value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').trim();
   if(!txt) return;
-  const jojo = isJojo(txt);
-  if(jojo) startRoses();
+  if(isJojo(txt)) startRoses();
   chatHistory.push({role:'user', content: txt});
   input.value = '';
   input.style.height = 'auto';
@@ -1117,7 +1119,6 @@ async function sendChat(){
   }finally{
     document.getElementById('chatSendBtn').disabled = false;
     renderChat();
-    if(jojo) stopRoses();
   }
 }
 

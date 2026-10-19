@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zihn-cache-v3';
+const CACHE_NAME = 'zihn-cache-v4';
 const ASSETS_TO_CACHE = [
   './index.html',
   './manifest.json',
