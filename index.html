@@ -1431,7 +1431,7 @@ function playSpiderWeb(onDone) {
       const y0 = Math.min(cy + R + 36 * s, H - 74 * k);
       for (const L of lines) {
         if (t < L.from || t > L.to) continue;
-        const frac = Math.min(1, (t - L.from) / ((L.to - L.from) * 0.62));
+        const frac = Math.min(1, (t - L.from) / ((L.to - L.from) * 0.5));
         const fade = Math.min(1, (t - L.from) / 0.3, (L.to - t) / 0.4);
         ctx.save();
         ctx.globalAlpha = Math.max(0, fade) * 0.95;
