@@ -969,6 +969,7 @@ document.getElementById('chatNewBtn').onclick = ()=>{
   chatHistory = [];
   saveChatHistory();
   renderChat();
+  resetJojo();
 };
 
 function renderChat(){
@@ -1089,6 +1090,17 @@ function stopRoses(){
     const layer = document.getElementById('roseLayer');
     if(layer) layer.remove();
   }, 9500);
+}
+// محادثة جديدة: بيوقف الورد وبيرجع لون الموقع طبيعي
+function resetJojo(){
+  clearTimeout(roseStop);
+  clearInterval(roseTimer);
+  clearTimeout(roseCleanup);
+  roseTimer = null;
+  const layer = document.getElementById('roseLayer');
+  if(layer) layer.remove();
+  document.body.classList.remove('jojo');
+  try{ localStorage.removeItem('zihnJojo'); }catch(e){}
 }
 
 async function sendChat(){
