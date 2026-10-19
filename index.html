@@ -1028,5 +1028,248 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
+
+<script>
+// Redd🕷️: لما حدا يسأل عن المطوّر، الموقع بيقلب أحمر والعنكبوت بيبني شبكته قبل ما يطلع الرد
+(function(){
+function playSpiderWeb(onDone) {
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  // turn the whole site red (stays red after the animation)
+  if (!document.getElementById('redd-style')) {
+    const st = document.createElement('style');
+    st.id = 'redd-style';
+    st.textContent = '#redd-tint{position:fixed;inset:0;z-index:99998;pointer-events:none;background:#d0102a;mix-blend-mode:multiply;opacity:0;transition:opacity 1.2s ease}';
+    document.head.appendChild(st);
+  }
+  if (!document.getElementById('redd-tint')) {
+    const tint = document.createElement('div');
+    tint.id = 'redd-tint';
+    document.documentElement.appendChild(tint);
+    requestAnimationFrame(() => tint.style.opacity = '1');
+  }
+
+  const cv = document.createElement('canvas');
+  cv.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;z-index:99999;cursor:pointer;opacity:0;transition:opacity .4s';
+  document.documentElement.appendChild(cv);
+  const ctx = cv.getContext('2d');
+  let W, H;
+  function size() { W = innerWidth; H = innerHeight; cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+  size();
+  requestAnimationFrame(() => cv.style.opacity = '1');
+
+  const cx = W / 2, cy = H * 0.46;
+  const R = Math.min(W, H) * 0.36;
+  const s = Math.max(0.9, Math.min(1.8, R / 120));
+  const rnd = (a, b) => a + Math.random() * (b - a);
+
+  // anchors around the frame
+  const N = 14, anchors = [];
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * Math.PI * 2 - Math.PI / 2 + rnd(-0.08, 0.08);
+    const r = R * rnd(0.9, 1.08);
+    anchors.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r, a, r });
+  }
+  const C = { x: cx, y: cy };
+
+  // build the spider's route: [from, to, lay, kind]
+  const segs = [];
+  const add = (f, t, lay, kind) => segs.push({ f, t, lay, kind, len: Math.hypot(t.x - f.x, t.y - f.y) });
+  add({ x: cx, y: -30 }, C, true, 'drag');
+  for (let i = 0; i < N; i += 2) {
+    const a = anchors[i], b = anchors[(i + 1) % N];
+    add(C, a, true, 'radial');
+    add(a, b, true, 'frame');
+    add(b, C, true, 'radial');
+  }
+  // close the remaining frame gaps by walking the rim
+  add(C, anchors[1], false, 'walk');
+  for (let i = 1; i < N; i += 2) add(anchors[i], anchors[(i + 1) % N], true, 'frame');
+  // capture spiral, outside in
+  const loops = 6, pts = [];
+  for (let k = 0; k < loops * N; k++) {
+    const i = (k + 1) % N, frac = 0.88 - 0.68 * (k / (loops * N));
+    pts.push({ x: cx + Math.cos(anchors[i].a) * anchors[i].r * frac, y: cy + Math.sin(anchors[i].a) * anchors[i].r * frac });
+  }
+  add(anchors[1], pts[0], false, 'walk');
+  for (let k = 1; k < pts.length; k++) add(pts[k - 1], pts[k], true, 'spiral');
+  add(pts[pts.length - 1], C, false, 'walk');
+
+  const total = segs.reduce((n, g) => n + g.len, 0);
+  const BUILD = reduce ? 4 : 7.5;               // seconds of building
+  addEventListener('resize', size);
+  const speed = total / BUILD;                    // px per second
+  const HOLD = 1.6, FADE = 0.6;
+
+  let start = null, heading = Math.PI / 2, done = false, finished = false;
+
+  function lerp(a, b, t) { return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }; }
+  function angDiff(a, b) { let d = b - a; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; }
+
+  function drawSpider(p, ang, phase) {
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(ang);
+    ctx.scale(s, s);
+    ctx.shadowColor = 'rgba(0,0,0,.55)';
+    ctx.shadowBlur = 5;
+    // legs: base angle (from forward), group for alternating gait
+    // legs: [angle from forward, reach, gait group]; front legs longest, like an orb weaver
+    const legs = [[0.55, 34, 0], [1.15, 28, 1], [1.95, 24, 0], [2.6, 30, 1]];
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (const side of [1, -1]) {
+      legs.forEach(([base, reach, g]) => {
+        const grp = (g + (side > 0 ? 0 : 1)) % 2;
+        const sw = Math.sin(phase + grp * Math.PI);           // fore/aft swing
+        const lift = Math.max(0, Math.cos(phase + grp * Math.PI)); // raised while swinging
+        const ba = base * side;
+        const dx = Math.cos(ba), dy = Math.sin(ba);
+        const px = -dy, py = dx;                               // perpendicular
+        const hip = { x: 2 + dx * 4, y: dy * 4 };
+        const foot = { x: 2 + dx * reach + sw * 4.5, y: dy * reach };
+        // femur rises outward, patella high point, tibia+tarsus angle down to the foot
+        const knee = { x: hip.x + dx * reach * 0.38 + px * side * 1.5, y: hip.y + dy * reach * 0.38 + py * side * 1.5 };
+        const shin = { x: hip.x + dx * reach * (0.72 + lift * 0.05), y: hip.y + dy * reach * (0.72 + lift * 0.05) };
+        ctx.strokeStyle = '#0a0607';
+        ctx.lineWidth = 2.6;
+        ctx.beginPath(); ctx.moveTo(hip.x, hip.y); ctx.lineTo(knee.x, knee.y); ctx.stroke();
+        ctx.lineWidth = 1.9;
+        ctx.beginPath(); ctx.moveTo(knee.x, knee.y); ctx.lineTo(shin.x, shin.y); ctx.stroke();
+        ctx.lineWidth = 1.1;
+        ctx.beginPath(); ctx.moveTo(shin.x, shin.y); ctx.lineTo(foot.x, foot.y); ctx.stroke();
+        // joint highlights
+        ctx.fillStyle = 'rgba(120,20,30,.55)';
+        ctx.beginPath(); ctx.arc(knee.x, knee.y, 1.1, 0, 7); ctx.arc(shin.x, shin.y, 0.8, 0, 7); ctx.fill();
+      });
+    }
+    // pedipalps
+    ctx.strokeStyle = '#0a0607'; ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.moveTo(7, 2.5); ctx.quadraticCurveTo(11, 4.5, 12.5, 3); ctx.moveTo(7, -2.5); ctx.quadraticCurveTo(11, -4.5, 12.5, -3); ctx.stroke();
+    // abdomen
+    const g1 = ctx.createRadialGradient(-12, -2, 1, -11, 0, 12);
+    g1.addColorStop(0, '#3a2a2c'); g1.addColorStop(1, '#050203');
+    ctx.fillStyle = g1;
+    ctx.beginPath(); ctx.ellipse(-11, 0, 11, 8.5, 0, 0, Math.PI * 2); ctx.fill();
+    // red mark
+    ctx.fillStyle = '#ff2a3d';
+    ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(-11, -3); ctx.lineTo(-16, 0); ctx.lineTo(-11, 3); ctx.closePath(); ctx.fill();
+    // cephalothorax
+    const g2 = ctx.createRadialGradient(3, -1.5, 0.5, 2, 0, 7);
+    g2.addColorStop(0, '#33262a'); g2.addColorStop(1, '#060304');
+    ctx.fillStyle = g2;
+    ctx.beginPath(); ctx.ellipse(2, 0, 6.5, 5.5, 0, 0, Math.PI * 2); ctx.fill();
+    // fangs + eyes
+    ctx.fillStyle = '#0a0607';
+    ctx.beginPath(); ctx.ellipse(8.5, 1.8, 1.8, 1.1, 0, 0, Math.PI * 2); ctx.ellipse(8.5, -1.8, 1.8, 1.1, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.55)';
+    ctx.beginPath(); ctx.arc(6, 1.3, 0.6, 0, 7); ctx.arc(6, -1.3, 0.6, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+
+  function thread(f, t, kind) {
+    ctx.strokeStyle = kind === 'spiral' ? 'rgba(235,235,245,.62)' : 'rgba(225,225,235,.78)';
+    ctx.lineWidth = kind === 'spiral' ? 0.8 : 1.1;
+    ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(t.x, t.y); ctx.stroke();
+  }
+
+  function frame(ts) {
+    if (finished) return;
+    if (start === null) start = ts;
+    const t = (ts - start) / 1000;
+    let dist = Math.min(total, t * speed);
+
+    ctx.clearRect(0, 0, W, H);
+    const bg = ctx.createRadialGradient(cx, cy, R * 0.2, cx, cy, Math.max(W, H) * 0.75);
+    bg.addColorStop(0, '#5a0410'); bg.addColorStop(0.55, '#2a0006'); bg.addColorStop(1, '#0c0002');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    // threads
+    let acc = 0, pos = C, segAng = heading;
+    for (const g of segs) {
+      if (acc + g.len <= dist) {
+        if (g.lay) thread(g.f, g.t, g.kind);
+        acc += g.len;
+        pos = g.t;
+        continue;
+      }
+      const k = g.len ? (dist - acc) / g.len : 1;
+      pos = lerp(g.f, g.t, k);
+      if (g.lay) thread(g.f, pos, g.kind);
+      segAng = Math.atan2(g.t.y - g.f.y, g.t.x - g.f.x);
+      break;
+    }
+    // dew glints on finished spiral
+    if (dist >= total) {
+      segs.forEach((g, i) => {
+        if (g.kind !== 'spiral' || i % 3) return;
+        const a = 0.25 + 0.35 * Math.max(0, Math.sin(t * 2.2 + i));
+        ctx.fillStyle = `rgba(255,255,255,${a})`;
+        ctx.beginPath(); ctx.arc(g.f.x, g.f.y, 1.3, 0, 7); ctx.fill();
+      });
+      segAng = -Math.PI / 2;
+    }
+    heading += angDiff(heading, segAng) * 0.18;
+    const phase = dist / (6 * s);
+    drawSpider(pos, heading, dist < total ? phase : 0);
+
+    // signature
+    if (dist >= total) {
+      const since = t - BUILD;
+      const a = Math.min(1, since / 0.6);
+      ctx.globalAlpha = a;
+      ctx.fillStyle = '#eee';
+      ctx.font = `600 ${Math.round(26 * s)}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('Redd🕷️', cx, cy + R + 48 * s);
+      ctx.globalAlpha = 1;
+      if (since > HOLD && !done) end();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function end() {
+    if (done) return;
+    done = true;
+    cv.style.transition = `opacity ${FADE}s`;
+    cv.style.opacity = '0';
+    setTimeout(() => { finished = true; cv.remove(); onDone && onDone(); }, FADE * 1000);
+  }
+  cv.addEventListener('click', end);
+  requestAnimationFrame(frame);
+}
+
+  function norm(s){
+    return String(s || '').trim()
+      .replace(/[\u064B-\u0652]/g, '')
+      .replace(/[أإآ]/g, 'ا')
+      .replace(/\s+/g, ' ');
+  }
+  function lastText(body){
+    try {
+      const msgs = JSON.parse(body).messages || [];
+      const c = msgs.length ? msgs[msgs.length - 1].content : '';
+      if (typeof c === 'string') return c;
+      if (Array.isArray(c)) return c.filter(b => b && b.type === 'text').map(b => b.text).join(' ');
+    } catch (e) {}
+    return '';
+  }
+  const BIZ_RE = /(مطور|المطور).*(بزنس|صدم)|(بزنس|صدم).*(مطور|المطور)/;
+  const DEV_RE = /مطور|redd/i;
+
+  const origFetch = window.fetch.bind(window);
+  window.fetch = function(input, init){
+    const url = typeof input === 'string' ? input : (input && input.url) || '';
+    if (/\/api\/chat$/.test(url) && init && typeof init.body === 'string') {
+      const t = norm(lastText(init.body));
+      if (DEV_RE.test(t) && !BIZ_RE.test(t)) {
+        const anim = new Promise(res => playSpiderWeb(res));
+        return Promise.all([origFetch(input, init), anim]).then(r => r[0]);
+      }
+    }
+    return origFetch(input, init);
+  };
+})();
+</script>
 </body>
 </html>
