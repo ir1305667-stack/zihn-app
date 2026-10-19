@@ -1506,6 +1506,23 @@ function playSpiderWeb(onDone) {
   const BIZ_RE = /(مطور|المطور).*(بزنس|صدم)|(بزنس|صدم).*(مطور|المطور)/;
   const DEV_RE = /redd|مطور (هذا |هاد |هالـ? ?)?(الموقع|موقع ذهن|ذهن)|(مين|من|عن|اسم|شو اسم|مين هو|من هو) ?ال?مطور|^ال?مطور( مين| شو|$|[ ?؟])|(مين|من) (عمل|صمم|برمج|طور|سوى|انشا|بنى|صنع|كتب) (هذا |هاد |هالـ? ?)?(الموقع|موقع ذهن|ذهن)|صاحب (هذا |هاد |هالـ? ?)?(الموقع|موقع ذهن|ذهن)/i;
 
+  // the developer reply sits above the red tint, in white on dark red
+  function markReddReply(){
+    if (!document.getElementById('redd-reply-style')) {
+      const st = document.createElement('style');
+      st.id = 'redd-reply-style';
+      st.textContent = '.redd-reply{position:relative;z-index:99999 !important;color:#fff !important;background:#2a0006 !important;border-color:#7a0a18 !important}.redd-reply *{color:#fff !important}';
+      document.head.appendChild(st);
+    }
+    const mark = () => document.querySelectorAll('.result, .msg').forEach(el => {
+      if (el.textContent.indexOf('نبذة عن المطوّر') !== -1) el.classList.add('redd-reply');
+    });
+    mark();
+    const mo = new MutationObserver(mark);
+    mo.observe(document.body, { childList: true, subtree: true, characterData: true });
+    setTimeout(() => mo.disconnect(), 8000);
+  }
+
   const origFetch = window.fetch.bind(window);
   window.fetch = function(input, init){
     const url = typeof input === 'string' ? input : (input && input.url) || '';
@@ -1513,7 +1530,7 @@ function playSpiderWeb(onDone) {
       const t = norm(lastText(init.body));
       if (DEV_RE.test(t) && !BIZ_RE.test(t)) {
         const anim = new Promise(res => playSpiderWeb(res));
-        return Promise.all([origFetch(input, init), anim]).then(r => r[0]);
+        return Promise.all([origFetch(input, init), anim]).then(r => { markReddReply(); return r[0]; });
       }
     }
     return origFetch(input, init);
