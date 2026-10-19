@@ -1064,10 +1064,10 @@ function playSpiderWeb(onDone) {
   const rnd = (a, b) => a + Math.random() * (b - a);
 
   // anchors around the frame
-  const N = 14, anchors = [];
+  const N = 18 + Math.floor(Math.random() * 5), anchors = [];
   for (let i = 0; i < N; i++) {
-    const a = (i / N) * Math.PI * 2 - Math.PI / 2 + rnd(-0.08, 0.08);
-    const r = R * rnd(0.9, 1.08);
+    const a = (i / N) * Math.PI * 2 - Math.PI / 2 + rnd(-0.1, 0.1);
+    const r = R * rnd(0.86, 1.08) * (Math.sin(a) > 0 ? 1.07 : 0.95);
     anchors.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r, a, r });
   }
   const C = { x: cx, y: cy };
@@ -1086,9 +1086,9 @@ function playSpiderWeb(onDone) {
   add(C, anchors[1], false, 'walk');
   for (let i = 1; i < N; i += 2) add(anchors[i], anchors[(i + 1) % N], true, 'frame');
   // capture spiral, outside in
-  const loops = 6, pts = [];
+  const loops = 7, pts = [];
   for (let k = 0; k < loops * N; k++) {
-    const i = (k + 1) % N, frac = 0.88 - 0.68 * (k / (loops * N));
+    const i = (k + 1) % N, frac = (0.9 - 0.64 * (k / (loops * N))) * rnd(0.975, 1.025);
     pts.push({ x: cx + Math.cos(anchors[i].a) * anchors[i].r * frac, y: cy + Math.sin(anchors[i].a) * anchors[i].r * frac });
   }
   add(anchors[1], pts[0], false, 'walk');
@@ -1138,6 +1138,12 @@ function playSpiderWeb(onDone) {
         ctx.beginPath(); ctx.moveTo(knee.x, knee.y); ctx.lineTo(shin.x, shin.y); ctx.stroke();
         ctx.lineWidth = 1.1;
         ctx.beginPath(); ctx.moveTo(shin.x, shin.y); ctx.lineTo(foot.x, foot.y); ctx.stroke();
+        // fine hairs along the leg
+        ctx.lineWidth = 0.35;
+        for (let h = 1; h <= 5; h++) {
+          const u = h / 6, hx = knee.x + (shin.x - knee.x) * u, hy = knee.y + (shin.y - knee.y) * u;
+          ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + px * side * 1.6 + dx * 0.8, hy + py * side * 1.6 + dy * 0.8); ctx.stroke();
+        }
         // joint highlights
         ctx.fillStyle = 'rgba(120,20,30,.55)';
         ctx.beginPath(); ctx.arc(knee.x, knee.y, 1.1, 0, 7); ctx.arc(shin.x, shin.y, 0.8, 0, 7); ctx.fill();
@@ -1150,7 +1156,13 @@ function playSpiderWeb(onDone) {
     const g1 = ctx.createRadialGradient(-12, -2, 1, -11, 0, 12);
     g1.addColorStop(0, '#3a2a2c'); g1.addColorStop(1, '#050203');
     ctx.fillStyle = g1;
-    ctx.beginPath(); ctx.ellipse(-11, 0, 11, 8.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-12, 0, 12, 9, 0, 0, Math.PI * 2); ctx.fill();
+    // glossy highlight on the abdomen
+    ctx.shadowBlur = 0;
+    const hl = ctx.createRadialGradient(-15, -4, 0, -15, -4, 6);
+    hl.addColorStop(0, 'rgba(255,255,255,.28)'); hl.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = hl;
+    ctx.beginPath(); ctx.ellipse(-15, -4, 6, 3.5, -0.3, 0, Math.PI * 2); ctx.fill();
     // red mark
     ctx.fillStyle = '#ff2a3d';
     ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(-11, -3); ctx.lineTo(-16, 0); ctx.lineTo(-11, 3); ctx.closePath(); ctx.fill();
@@ -1167,10 +1179,25 @@ function playSpiderWeb(onDone) {
     ctx.restore();
   }
 
-  function thread(f, t, kind) {
-    ctx.strokeStyle = kind === 'spiral' ? 'rgba(235,235,245,.62)' : 'rgba(225,225,235,.78)';
-    ctx.lineWidth = kind === 'spiral' ? 0.8 : 1.1;
-    ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(t.x, t.y); ctx.stroke();
+  // silk: radials are taut, frame and capture threads sag a little under gravity,
+  // capture threads carry tiny glue droplets that catch the light
+  function thread(f, t, kind, full) {
+    const len = Math.hypot(t.x - f.x, t.y - f.y);
+    const sag = !full ? 0 : kind === 'spiral' ? len * 0.06 : kind === 'frame' ? len * 0.025 : 0;
+    const mx = (f.x + t.x) / 2, my = (f.y + t.y) / 2 + sag;
+    ctx.strokeStyle = kind === 'spiral' ? 'rgba(236,228,230,.55)' : 'rgba(232,226,228,.8)';
+    ctx.lineWidth = kind === 'spiral' ? 0.7 : kind === 'hub' ? 0.6 : 1.05;
+    ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.quadraticCurveTo(mx, my, t.x, t.y); ctx.stroke();
+    if (kind === 'spiral' && full && len > 6) {
+      ctx.fillStyle = 'rgba(255,245,245,.5)';
+      const n = Math.floor(len / 7);
+      for (let i = 1; i < n; i++) {
+        const u = i / n, v = 1 - u;
+        const x = v * v * f.x + 2 * u * v * mx + u * u * t.x;
+        const y = v * v * f.y + 2 * u * v * my + u * u * t.y;
+        ctx.beginPath(); ctx.arc(x, y, 0.55 + ((i * 7) % 3) * 0.2, 0, 7); ctx.fill();
+      }
+    }
   }
 
   function frame(ts) {
@@ -1188,14 +1215,14 @@ function playSpiderWeb(onDone) {
     let acc = 0, pos = C, segAng = heading;
     for (const g of segs) {
       if (acc + g.len <= dist) {
-        if (g.lay) thread(g.f, g.t, g.kind);
+        if (g.lay) thread(g.f, g.t, g.kind, true);
         acc += g.len;
         pos = g.t;
         continue;
       }
       const k = g.len ? (dist - acc) / g.len : 1;
       pos = lerp(g.f, g.t, k);
-      if (g.lay) thread(g.f, pos, g.kind);
+      if (g.lay) thread(g.f, pos, g.kind, false);
       segAng = Math.atan2(g.t.y - g.f.y, g.t.x - g.f.x);
       break;
     }
