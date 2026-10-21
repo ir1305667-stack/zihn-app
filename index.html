@@ -711,7 +711,7 @@ const API_ENDPOINT = IS_CLAUDE_PREVIEW
     ? "/.netlify/functions/chat"
     : "/api/chat";
 
-async function callClaudeAPI({system, messages}, retries = 2, timeoutMs = 25000){
+async function callClaudeAPI({system, messages}, retries = 1, timeoutMs = 60000){
   let lastErr;
   for(let attempt = 0; attempt <= retries; attempt++){
     try{
