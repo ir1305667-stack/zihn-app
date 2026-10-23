@@ -762,7 +762,7 @@ function summarize(text, maxLen){
   if(text.length <= maxLen) return text;
   return text.slice(0, maxLen).trim() + "...";
 }
-const articleFullIndex = articleIndex.map(a=>`### ${a.title} (قسم: ${a.cat})\n${summarize(a.body, 70)}`).join("\n");
+const articleFullIndex = articleIndex.map(a=>`### ${a.title} (قسم: ${a.cat})\n${summarize(a.body, 180)}`).join("\n\n");
 const ratioLabel = `${AI_CONFIG.groundingRatio.articles}٪`;
 function buildSystemPrompt(template){
   return template
