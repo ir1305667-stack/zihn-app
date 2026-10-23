@@ -133,12 +133,27 @@ async function handleChat(request, env) {
   const model = "gemini-flash-latest";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
+  // نحدّ وقت "التفكير" الداخلي عشان الرد يوصل أسرع ولا ياكل توكنز الرد
+  const fastBody = {
+    ...geminiBody,
+    generationConfig: {
+      ...geminiBody.generationConfig,
+      thinkingConfig: { thinkingBudget: 1024 },
+    },
+  };
+
   try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(geminiBody),
-    });
+    const send = (body) =>
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    let response = await send(fastBody);
+    // لو الموديل ما دعم الإعداد، نعيد الطلب بدونه
+    if (response.status === 400) {
+      response = await send(geminiBody);
+    }
     const data = await response.json();
 
     if (!response.ok) {
