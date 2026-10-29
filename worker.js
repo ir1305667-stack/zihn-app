@@ -154,11 +154,18 @@ async function handleChat(request, env) {
     if (response.status === 400) {
       response = await send(geminiBody);
     }
-    const data = await response.json();
+    // Gemini أحياناً بيكون مضغوط (429/500/503): نستنى شوي ونعيد المحاولة مرتين
+    for (let attempt = 0; attempt < 2 && [429, 500, 503].includes(response.status); attempt++) {
+      await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+      response = await send(fastBody);
+    }
+    const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      const msg =
-        data.error && data.error.message
+      const busy = [429, 500, 503].includes(response.status);
+      const msg = busy
+        ? "الخدمة مضغوطة هلق، جرب كمان دقيقة."
+        : data.error && data.error.message
           ? data.error.message
           : "HTTP " + response.status;
       return new Response(JSON.stringify({ error: { message: msg } }), {
